@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Chatbot from '../components/Chatbot';
+import AppointmentBooking from '../components/AppointmentBooking';
 
 const metrics = [
   { value: '6+', label: 'années d’expérience' },
@@ -75,11 +76,11 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
           <Link href="/" className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/15 text-sm font-bold text-blue-400 ring-1 ring-blue-500/30">
-              CP
+            V
             </span>
             <div>
-              <div className="text-sm font-semibold tracking-[0.18em] text-slate-300 uppercase">Career</div>
-              <div className="text-xs text-slate-500">Platform</div>
+              <div className="text-sm font-semibold tracking-[0.18em] text-slate-300 uppercase">Vitiana</div>
+              <div className="text-xs text-slate-500">Portfolio professionnel</div>
             </div>
           </Link>
 
@@ -92,7 +93,7 @@ export default function HomePage() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="#contact"
+              href="#rendez-vous"
               className="inline-flex rounded-full bg-blue-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-400"
             >
               Prendre rendez-vous
@@ -107,11 +108,11 @@ export default function HomePage() {
           <div className="max-w-2xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-300">
               <span className="h-2 w-2 rounded-full bg-blue-400" />
-              Portfolio premium · SaaS · visibilité
+              Portfolio de Vitiana · stratégie · expérience digitale
             </div>
 
             <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Je transforme votre expertise en une présence qui convertit.
+              Nous transformons votre expertise en une présence qui convertit.
             </h1>
 
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
@@ -306,6 +307,19 @@ export default function HomePage() {
               </a>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section id="rendez-vous" className="border-y border-slate-800 bg-slate-900/40">
+        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-400">Prise de rendez-vous</p>
+            <h2 className="mt-3 text-3xl font-bold text-white sm:text-4xl">Échangeons sur votre prochain projet.</h2>
+            <p className="mt-4 text-base leading-7 text-slate-300">
+              Choisissez le format d’échange qui correspond le mieux à votre besoin. Vitiana vous répondra pour confirmer le créneau.
+            </p>
+          </div>
+          <AppointmentBooking />
         </div>
       </section>
 

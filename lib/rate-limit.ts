@@ -12,6 +12,8 @@ const presets: Record<RateLimitPreset, { requests: number; window: `${number} ${
 };
 
 const limiters = new Map<RateLimitPreset, Ratelimit>();
+const localAttempts = new Map<string, { count: number; reset: number }>();
+let warnedAboutLocalRateLimit = false;
 
 function getLimiter(preset: RateLimitPreset) {
   const existing = limiters.get(preset);
@@ -42,6 +44,48 @@ export function getClientIp(request: Request) {
 
 export async function enforceRateLimit(request: Request, preset: RateLimitPreset) {
   const identifier = `${preset}:${getClientIp(request)}`;
+  const config = presets[preset];
+  const hasRedisConfiguration =
+    Boolean(process.env.UPSTASH_REDIS_REST_URL) &&
+    Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+
+  if (!hasRedisConfiguration) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('La configuration Upstash Redis est requise en production.');
+    }
+
+    if (!warnedAboutLocalRateLimit) {
+      console.warn(
+        'Upstash Redis non configuré : rate limiting local de développement activé.',
+      );
+      warnedAboutLocalRateLimit = true;
+    }
+
+    const now = Date.now();
+    const current = localAttempts.get(identifier);
+    const windowMs = preset === 'publicForm' ? 10 * 60 * 1000 : 60 * 1000;
+    const reset = current && current.reset > now ? current.reset : now + windowMs;
+    const count = current && current.reset > now ? current.count + 1 : 1;
+
+    localAttempts.set(identifier, { count, reset });
+
+    if (count > config.requests) {
+      return NextResponse.json(
+        { error: 'Trop de requêtes. Veuillez réessayer dans quelques instants.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(Math.max(1, Math.ceil((reset - now) / 1000))),
+            'X-RateLimit-Limit': String(config.requests),
+            'X-RateLimit-Remaining': '0',
+          },
+        },
+      );
+    }
+
+    return null;
+  }
+
   const result = await getLimiter(preset).limit(identifier);
 
   if (result.success) {

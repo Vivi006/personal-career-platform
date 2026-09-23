@@ -13,7 +13,21 @@ export async function POST(request: Request) {
       return rateLimitResponse;
     }
 
-    const result = loginSchema.safeParse(await request.json());
+    let body: unknown;
+    const isFormSubmission = request.headers.get('content-type')?.includes('application/x-www-form-urlencoded');
+
+    try {
+      body = isFormSubmission
+        ? Object.fromEntries((await request.formData()).entries())
+        : await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Le corps de la requête doit être un JSON valide.' },
+        { status: 400 }
+      );
+    }
+
+    const result = loginSchema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json(
@@ -53,14 +67,28 @@ export async function POST(request: Request) {
       { success: true, message: 'Connexion réussie.' },
       { status: 200 }
     );
+    response.headers.set('Cache-Control', 'no-store, max-age=0');
 
     response.cookies.set('admin_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: new URL(request.url).protocol === 'https:',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24,
       path: '/',
     });
+
+    if (isFormSubmission) {
+      const redirectResponse = NextResponse.redirect(new URL('/admin/calendar', request.url), 303);
+      redirectResponse.headers.set('Cache-Control', 'no-store, max-age=0');
+      redirectResponse.cookies.set('admin_token', token, {
+        httpOnly: true,
+        secure: new URL(request.url).protocol === 'https:',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24,
+        path: '/',
+      });
+      return redirectResponse;
+    }
 
     return response;
   } catch (error) {

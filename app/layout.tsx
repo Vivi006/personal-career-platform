@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Portfolio & Plateforme SaaS",
-  description: "Plateforme d'administration et portfolio professionnel",
+  title: "Vitiana — Portfolio professionnel",
+  description: "Le portfolio professionnel de Vitiana : stratégie, expériences digitales et solutions qui convertissent.",
 };
 
 export default function RootLayout({

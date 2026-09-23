@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('admin@portfolio.com');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,16 +18,18 @@ export default function AdminLoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        cache: 'no-store',
       });
 
-      const data = await res.json();
+      const data: { error?: string } = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         throw new Error(data.error || 'Identifiants incorrects.');
       }
 
-      router.push('/admin');
-      router.refresh();
+      // Force a complete navigation so the browser sends the newly-created
+      // HttpOnly cookie through the proxy before opening the calendar.
+      window.location.replace('/admin/calendar');
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -55,11 +55,12 @@ export default function AdminLoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form method="post" action="/api/auth/login" onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Adresse Email</label>
             <input
               type="email"
+              name="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -72,6 +73,7 @@ export default function AdminLoginPage() {
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Mot de passe</label>
             <input
               type="password"
+              name="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

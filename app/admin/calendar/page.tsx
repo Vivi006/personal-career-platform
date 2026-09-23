@@ -19,7 +19,7 @@ export default function AdminCalendarPage() {
   const [error, setError] = useState('');
 
   async function load() {
-    const response = await fetch('/api/appointments');
+    const response = await fetch('/api/appointments', { cache: 'no-store' });
     if (!response.ok) {
       setError('Impossible de charger les rendez-vous.');
       return;

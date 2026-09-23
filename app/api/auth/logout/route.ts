@@ -5,12 +5,9 @@ export async function POST() {
     { success: true, message: 'Déconnexion réussie.' },
     { status: 200 }
   );
+  response.headers.set('Cache-Control', 'no-store, max-age=0');
 
-  response.cookies.set('admin_token', '', {
-    httpOnly: true,
-    expires: new Date(0),
-    path: '/',
-  });
+  response.cookies.delete('admin_token');
 
   return response;
 }
