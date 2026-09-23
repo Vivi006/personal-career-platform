@@ -12,23 +12,30 @@ datasource db {
 
 enum Role {
   ADMIN
+  EDITOR
   USER
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  passwordHash  String?
-  role          Role           @default(USER)
-  name          String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  projects      Project[]
-  experiences   Experience[]
-  articles      Article[]
-  skills        Skill[]
-  services      Service[]
+  id             String         @id @default(cuid())
+  email          String         @unique
+  passwordHash   String?
+  role           Role           @default(USER)
+  name           String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  projects       Project[]
+  experiences    Experience[]
+  articles       Article[]
+  skills         Skill[]
+  services       Service[]
   availabilities Availability[]
+  media          Media[]
+  conversations  Conversation[]
+  notifications  Notification[]
+
+  @@index([role])
+  @@index([createdAt])
 }
 
 model Project {
@@ -43,50 +50,68 @@ model Project {
   tags        String[] @default([])
   published   Boolean  @default(false)
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([published, createdAt])
 }
 
 model Experience {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   company     String
   role        String
   startDate   DateTime
   endDate     DateTime?
   description String?
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startDate])
+  @@index([company])
 }
 
 model Skill {
-  id          String   @id @default(cuid())
-  name        String
-  category    String?
-  level       Int?
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  id       String  @id @default(cuid())
+  name     String
+  category String?
+  level    Int?
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
 }
 
 model Article {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  content     String
-  published   Boolean  @default(false)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  content   String
+  published Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([published, createdAt])
 }
 
 model Media {
-  id          String   @id @default(cuid())
-  fileName    String
-  url         String
-  mimeType    String
-  size        Int
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  fileName  String
+  url       String
+  mimeType  String
+  size      Int
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([mimeType])
+  @@index([createdAt])
 }
 
 model Service {
@@ -95,8 +120,11 @@ model Service {
   duration     Int
   price        Float?
   userId       String
-  user         User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   appointments Appointment[]
+
+  @@index([userId])
+  @@index([name])
 }
 
 model Availability {
@@ -105,7 +133,9 @@ model Availability {
   startTime String
   endTime   String
   userId    String
-  user      User   @relation(fields: [userId], references: [id])
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, dayOfWeek])
 }
 
 model Appointment {
@@ -115,17 +145,20 @@ model Appointment {
   date       DateTime
   status     String   @default("PENDING")
   serviceId  String
-  service    Service  @relation(fields: [serviceId], references: [id])
+  service    Service  @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   createdAt  DateTime @default(now())
+
+  @@index([serviceId, date])
+  @@index([date, status])
+  @@index([guestEmail])
 }
 
 enum LeadStatus {
-  NEW
-  CONTACTED
-  DISCUSSION
-  PROPOSAL
-  WON
-  LOST
+  NOUVEAU
+  CONTACTE
+  PROPOSITION
+  GAGNE
+  PERDU
 }
 
 model Lead {
@@ -133,27 +166,39 @@ model Lead {
   name      String
   email     String
   company   String?
-  status    LeadStatus @default(NEW)
+  status    LeadStatus @default(NOUVEAU)
   notes     LeadNote[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+
+  @@index([status, updatedAt])
+  @@index([email])
+  @@index([company])
 }
 
 model LeadNote {
   id        String   @id @default(cuid())
   content   String
   leadId    String
-  lead      Lead     @relation(fields: [leadId], references: [id])
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
 
 model Conversation {
   id         String    @id @default(cuid())
   guestEmail String
   guestName  String
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   messages   Message[]
   updatedAt  DateTime  @updatedAt
   createdAt  DateTime  @default(now())
+
+  @@index([guestEmail])
+  @@index([userId])
+  @@index([updatedAt])
 }
 
 model Message {
@@ -161,8 +206,10 @@ model Message {
   content        String
   isFromAdmin    Boolean      @default(false)
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 model Notification {
@@ -171,7 +218,12 @@ model Notification {
   message   String
   read      Boolean  @default(false)
   type      String
-  createdAt DateTime   @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+  @@index([type])
 }
 
 model KnowledgeChunk {
@@ -181,4 +233,7 @@ model KnowledgeChunk {
   sourceId   String
   embedding  Unsupported("vector(768)")?
   createdAt  DateTime                    @default(now())
+
+  @@index([sourceType, sourceId])
+  @@index([createdAt])
 }

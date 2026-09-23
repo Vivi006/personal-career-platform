@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { verifyJWT } from '../../../../lib/auth';
 import { cookies } from 'next/headers';
+import { enforceRateLimit } from '../../../../lib/rate-limit';
+import { projectSchema } from '../../../../lib/validations';
 
 // PUT : Modifier un projet par ID
 export async function PUT(
@@ -9,6 +11,12 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const rateLimitResponse = await enforceRateLimit(request, 'publicForm');
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { id } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get('admin_token')?.value;
@@ -17,12 +25,16 @@ export async function PUT(
       return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { title, description, link, githubUrl, imageUrl, tags, published } = body;
+    const result = projectSchema.safeParse(await request.json());
 
-    const parsedTags = typeof tags === 'string'
-      ? tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-      : Array.isArray(tags) ? tags : [];
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Données de projet invalides.', details: result.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { title, description, link, githubUrl, imageUrl, tags, published } = result.data;
 
     const updatedProject = await prisma.project.update({
       where: { id },
@@ -32,7 +44,7 @@ export async function PUT(
         link: link || null,
         githubUrl: githubUrl || null,
         imageUrl: imageUrl || null,
-        tags: parsedTags,
+        tags,
         published: published ?? true,
       },
     });

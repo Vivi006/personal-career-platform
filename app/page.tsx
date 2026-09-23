@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Chatbot from '../components/Chatbot';
 
 const metrics = [
   { value: '6+', label: 'années d’expérience' },
@@ -306,6 +307,10 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-20 lg:px-8">
+        <Chatbot />
       </section>
     </main>
   );

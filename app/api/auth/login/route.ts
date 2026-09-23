@@ -2,18 +2,27 @@ import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../../../lib/prisma';
 import { signJWT } from '../../../../lib/auth';
+import { enforceRateLimit } from '../../../../lib/rate-limit';
+import { loginSchema } from '../../../../lib/validations';
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const rateLimitResponse = await enforceRateLimit(request, 'auth');
 
-    if (!email || !password) {
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
+    const result = loginSchema.safeParse(await request.json());
+
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Email et mot de passe requis.' },
+        { error: 'Données de connexion invalides.', details: result.error.flatten() },
         { status: 400 }
       );
     }
 
+    const { email, password } = result.data;
     const user = await prisma.user.findUnique({
       where: { email },
     });

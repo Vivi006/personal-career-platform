@@ -1,9 +1,19 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/notifications')
+      .then((response) => response.ok ? response.json() : [])
+      .then((items: { read: boolean }[]) => setUnread(items.filter((item) => !item.read).length))
+      .catch(() => setUnread(0));
+  }, []);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -18,6 +28,9 @@ export default function AdminDashboardPage() {
           <span className="font-bold text-lg text-blue-400">Career Platform</span>
           <span className="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">Admin</span>
         </div>
+        <Link href="/admin/leads" className="mr-4 text-sm text-slate-300 hover:text-white">
+          Notifications {unread > 0 && <span className="ml-1 rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">{unread}</span>}
+        </Link>
         <button
           onClick={handleLogout}
           className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded transition-colors"
@@ -45,6 +58,10 @@ export default function AdminDashboardPage() {
               <span className="text-xs text-slate-500 mt-1 block">{stat.detail}</span>
             </div>
           ))}
+        </div>
+        <div className="flex gap-3">
+          <Link href="/admin/calendar" className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-900">Calendrier</Link>
+          <Link href="/admin/leads" className="rounded-lg border border-slate-700 px-4 py-2 text-sm hover:bg-slate-900">Pipeline CRM</Link>
         </div>
       </main>
     </div>

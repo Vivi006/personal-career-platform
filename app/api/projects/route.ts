@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { verifyJWT } from '../../../lib/auth';
 import { cookies } from 'next/headers';
+import { enforceRateLimit } from '../../../lib/rate-limit';
+import { projectSchema } from '../../../lib/validations';
 
 // GET : Récupérer tous les projets
 export async function GET() {
@@ -22,6 +24,12 @@ export async function GET() {
 // POST : Créer un nouveau projet (Protégé Admin)
 export async function POST(request: Request) {
   try {
+    const rateLimitResponse = await enforceRateLimit(request, 'publicForm');
+
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const cookieStore = await cookies();
     const token = cookieStore.get('admin_token')?.value;
 
@@ -29,19 +37,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { title, description, link, githubUrl, imageUrl, tags } = body;
+    const result = projectSchema.safeParse(await request.json());
 
-    if (!title || !description) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Le titre et la description sont requis.' },
+        { error: 'Données de projet invalides.', details: result.error.flatten() },
         { status: 400 }
       );
     }
 
-    const parsedTags = typeof tags === 'string' 
-      ? tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-      : Array.isArray(tags) ? tags : [];
+    const { title, description, link, githubUrl, imageUrl, tags } = result.data;
 
     const project = await prisma.project.create({
       data: {
@@ -50,7 +55,7 @@ export async function POST(request: Request) {
         link: link || null,
         githubUrl: githubUrl || null,
         imageUrl: imageUrl || null,
-        tags: parsedTags,
+        tags,
       },
     });
 
